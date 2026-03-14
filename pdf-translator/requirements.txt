@@ -1,0 +1,10 @@
+flask==3.0.0
+flask-cors==4.0.0
+pypdf==4.0.1
+pdfplumber==0.10.3
+reportlab==4.1.0
+deep-translator==1.11.4
+google-generativeai==0.5.4
+anthropic==0.23.1
+python-dotenv==1.0.0
+Pillow==10.2.0
