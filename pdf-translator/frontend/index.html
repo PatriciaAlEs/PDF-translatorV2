@@ -1,13 +1,22 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PDF Translator</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap" rel="stylesheet" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;1,9..40,300&display=swap"
+    rel="stylesheet" />
   <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
 
     :root {
       --bg: #1a1f2e;
@@ -51,7 +60,10 @@
       background-clip: text;
     }
 
-    .logo span { font-weight: 400; opacity: .6; }
+    .logo span {
+      font-weight: 400;
+      opacity: .6;
+    }
 
     /* STEPS BAR */
     .steps {
@@ -90,11 +102,29 @@
       vertical-align: middle;
     }
 
-    .step.active { color: var(--accent); border-bottom-color: var(--accent); }
-    .step.active .step-num { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
-    .step.done { color: var(--green); }
-    .step.done .step-num { background: rgba(34, 197, 94, .25); color: var(--green); }
-    .step.locked { opacity: .4; cursor: not-allowed; }
+    .step.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+
+    .step.active .step-num {
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      color: #fff;
+    }
+
+    .step.done {
+      color: var(--green);
+    }
+
+    .step.done .step-num {
+      background: rgba(34, 197, 94, .25);
+      color: var(--green);
+    }
+
+    .step.locked {
+      opacity: .4;
+      cursor: not-allowed;
+    }
 
     main {
       flex: 1;
@@ -142,15 +172,30 @@
       transition: all .25s;
     }
 
-    .upload-zone:hover, .upload-zone.drag {
+    .upload-zone:hover,
+    .upload-zone.drag {
       border-color: var(--accent);
       background: rgba(79, 142, 247, .05);
     }
 
-    .upload-icon { font-size: 2.5rem; margin-bottom: .8rem; }
-    .upload-zone p { color: var(--muted); font-size: .9rem; }
-    .upload-zone strong { color: var(--accent); }
-    .upload-zone label { display: block; cursor: pointer; }
+    .upload-icon {
+      font-size: 2.5rem;
+      margin-bottom: .8rem;
+    }
+
+    .upload-zone p {
+      color: var(--muted);
+      font-size: .9rem;
+    }
+
+    .upload-zone strong {
+      color: var(--accent);
+    }
+
+    .upload-zone label {
+      display: block;
+      cursor: pointer;
+    }
 
     /* BUTTONS */
     .btn {
@@ -172,7 +217,10 @@
       color: #fff;
     }
 
-    .btn-primary:hover { opacity: .88; transform: translateY(-1px); }
+    .btn-primary:hover {
+      opacity: .88;
+      transform: translateY(-1px);
+    }
 
     .btn-secondary {
       background: var(--surface2);
@@ -180,7 +228,10 @@
       color: var(--text);
     }
 
-    .btn-secondary:hover { border-color: var(--accent); color: var(--accent); }
+    .btn-secondary:hover {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
 
     .btn-green {
       background: rgba(34, 197, 94, .15);
@@ -188,14 +239,40 @@
       color: var(--green);
     }
 
-    .btn-sm { padding: .4rem .8rem; font-size: .8rem; border-radius: 6px; }
-    .btn:disabled { opacity: .4; cursor: not-allowed; transform: none; }
+    .btn-sm {
+      padding: .4rem .8rem;
+      font-size: .8rem;
+      border-radius: 6px;
+    }
+
+    .btn:disabled {
+      opacity: .4;
+      cursor: not-allowed;
+      transform: none;
+    }
 
     /* INPUTS */
-    .form-row { display: flex; gap: 1rem; align-items: flex-end; flex-wrap: wrap; }
-    .field { display: flex; flex-direction: column; gap: .4rem; }
-    .field label { font-size: .8rem; color: var(--muted); font-weight: 500; }
-    .field input, .field select {
+    .form-row {
+      display: flex;
+      gap: 1rem;
+      align-items: flex-end;
+      flex-wrap: wrap;
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: .4rem;
+    }
+
+    .field label {
+      font-size: .8rem;
+      color: var(--muted);
+      font-weight: 500;
+    }
+
+    .field input,
+    .field select {
       background: var(--surface2);
       border: 1px solid var(--border);
       color: var(--text);
@@ -205,7 +282,12 @@
       font-size: .875rem;
       transition: border-color .2s;
     }
-    .field input:focus, .field select:focus { outline: none; border-color: var(--accent); }
+
+    .field input:focus,
+    .field select:focus {
+      outline: none;
+      border-color: var(--accent);
+    }
 
     /* PARAGRAPHS PREVIEW */
     .para-list {
@@ -225,8 +307,16 @@
       color: var(--muted);
     }
 
-    .para-item:last-child { border-bottom: none; }
-    .para-item .para-idx { color: var(--accent); font-weight: 600; margin-right: .5rem; font-size: .75rem; }
+    .para-item:last-child {
+      border-bottom: none;
+    }
+
+    .para-item .para-idx {
+      color: var(--accent);
+      font-weight: 600;
+      margin-right: .5rem;
+      font-size: .75rem;
+    }
 
     /* PROGRESS */
     .progress-bar {
@@ -253,9 +343,20 @@
       margin-top: 1rem;
     }
 
-    .status-msg.success { border-color: var(--green); color: var(--green); }
-    .status-msg.error { border-color: var(--red); color: var(--red); }
-    .status-msg.working { border-color: var(--accent); color: var(--accent); }
+    .status-msg.success {
+      border-color: var(--green);
+      color: var(--green);
+    }
+
+    .status-msg.error {
+      border-color: var(--red);
+      color: var(--red);
+    }
+
+    .status-msg.working {
+      border-color: var(--accent);
+      color: var(--accent);
+    }
 
     /* TOAST */
     #toast {
@@ -276,10 +377,28 @@
       box-shadow: 0 8px 32px rgba(0, 0, 0, .45);
     }
 
-    #toast.show { transform: translateY(0); opacity: 1; }
-    #toast.success { border-color: var(--green); color: var(--green); background: linear-gradient(135deg, rgba(34,197,94,.12), #111420); }
-    #toast.error { border-color: var(--red); color: var(--red); background: linear-gradient(135deg, rgba(239,68,68,.12), #111420); }
-    #toast.info { border-color: var(--accent); color: var(--accent); background: linear-gradient(135deg, rgba(79,142,247,.12), #111420); }
+    #toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+
+    #toast.success {
+      border-color: var(--green);
+      color: var(--green);
+      background: linear-gradient(135deg, rgba(34, 197, 94, .12), #111420);
+    }
+
+    #toast.error {
+      border-color: var(--red);
+      color: var(--red);
+      background: linear-gradient(135deg, rgba(239, 68, 68, .12), #111420);
+    }
+
+    #toast.info {
+      border-color: var(--accent);
+      color: var(--accent);
+      background: linear-gradient(135deg, rgba(79, 142, 247, .12), #111420);
+    }
 
     /* CONFETTI */
     .confetti-piece {
@@ -292,8 +411,15 @@
     }
 
     @keyframes confetti-fall {
-      0% { opacity: 1; transform: translateY(0) rotate(0deg) scale(1); }
-      100% { opacity: 0; transform: translateY(100vh) rotate(720deg) scale(0.3); }
+      0% {
+        opacity: 1;
+        transform: translateY(0) rotate(0deg) scale(1);
+      }
+
+      100% {
+        opacity: 0;
+        transform: translateY(100vh) rotate(720deg) scale(0.3);
+      }
     }
 
     .file-info {
@@ -307,23 +433,38 @@
       font-size: .875rem;
     }
 
-    .file-info .fi-icon { font-size: 1.4rem; }
-    .file-info .fi-name { font-weight: 500; }
-    .file-info .fi-meta { font-size: .8rem; color: var(--muted); }
+    .file-info .fi-icon {
+      font-size: 1.4rem;
+    }
+
+    .file-info .fi-name {
+      font-weight: 500;
+    }
+
+    .file-info .fi-meta {
+      font-size: .8rem;
+      color: var(--muted);
+    }
 
     .spinner {
       width: 16px;
       height: 16px;
-      border: 2px solid rgba(255,255,255,.2);
+      border: 2px solid rgba(255, 255, 255, .2);
       border-top-color: #fff;
       border-radius: 50%;
       animation: spin .7s linear infinite;
       display: inline-block;
     }
 
-    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
 
-    .hidden { display: none !important; }
+    .hidden {
+      display: none !important;
+    }
 
     /* OPTIONS ROW */
     .options-row {
@@ -347,8 +488,40 @@
       width: 16px;
       height: 16px;
     }
+
+    /* STEP STATS */
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: .15rem;
+    }
+
+    .stat-label {
+      font-size: .72rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      font-weight: 500;
+    }
+
+    .stat-value {
+      font-family: 'Syne', sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+
+    .step-connector {
+      display: flex;
+      align-items: center;
+      gap: .3rem;
+      padding: 0 .4rem;
+      color: var(--border);
+      font-size: .7rem;
+    }
   </style>
 </head>
+
 <body>
 
   <header>
@@ -359,9 +532,9 @@
   </header>
 
   <nav class="steps">
-    <div class="step active" id="step1-tab" onclick="goStep(1)"><span class="step-num">1</span> Subir PDF</div>
+    <div class="step active" id="step1-tab" onclick="goStep(1)"><span class="step-num">1</span> Subir</div>
     <div class="step locked" id="step2-tab" onclick="goStep(2)"><span class="step-num">2</span> Traducir</div>
-    <div class="step locked" id="step3-tab" onclick="goStep(3)"><span class="step-num">3</span> Generar PDF</div>
+    <div class="step locked" id="step3-tab" onclick="goStep(3)"><span class="step-num">3</span> Descargar</div>
   </nav>
 
   <main>
@@ -369,13 +542,14 @@
     <!-- STEP 1: UPLOAD -->
     <div id="step1">
       <div class="card">
-        <h2><span class="icon">&#128196;</span> Sube tu PDF</h2>
+        <h2><span class="icon">&#128196;</span> Paso 1 &mdash; Sube tu PDF</h2>
         <div class="upload-zone" id="uploadZone">
           <input type="file" id="fileInput" accept=".pdf" hidden />
           <label for="fileInput">
             <div class="upload-icon">&#11014;&#65039;</div>
             <p>Arrastra tu PDF aqu&iacute; o <strong>haz clic para seleccionarlo</strong></p>
-            <p style="margin-top:.5rem; font-size:.8rem;">El layout, fuentes e im&aacute;genes se preservan autom&aacute;ticamente</p>
+            <p style="margin-top:.5rem; font-size:.8rem;">El layout, fuentes e im&aacute;genes se preservan
+              autom&aacute;ticamente</p>
           </label>
         </div>
         <div id="fileInfo" class="file-info hidden" style="margin-top:1rem;">
@@ -386,8 +560,37 @@
           </div>
         </div>
         <div id="uploadProgress" class="hidden" style="margin-top:1rem;">
-          <div class="progress-bar"><div class="progress-fill" id="uploadProgressFill" style="width:0%"></div></div>
-          <p style="font-size:.85rem; color:var(--muted);" id="uploadStatus">Subiendo y convirtiendo a DOCX...</p>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.4rem;">
+            <span style="font-size:.8rem; color:var(--muted);" id="uploadStepLabel">Subiendo...</span>
+            <span style="font-size:.8rem; color:var(--accent);" id="uploadPct">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="uploadProgressFill" style="width:0%"></div>
+          </div>
+          <p style="font-size:.82rem; color:var(--muted); margin-top:.4rem;" id="uploadStatus">Subiendo PDF al
+            servidor...</p>
+        </div>
+        <!-- Upload complete summary -->
+        <div id="uploadDone" class="hidden" style="margin-top:1rem;">
+          <div class="status-msg success" id="uploadDoneMsg"></div>
+          <div class="step-stats" style="display:flex; gap:1.5rem; margin-top:.8rem; flex-wrap:wrap;">
+            <div class="stat-item">
+              <span class="stat-label">P&aacute;ginas</span>
+              <span class="stat-value" id="statPages">-</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">P&aacute;rrafos</span>
+              <span class="stat-value" id="statParas">-</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Tama&ntilde;o</span>
+              <span class="stat-value" id="statSize">-</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Tiempo</span>
+              <span class="stat-value" id="statUploadTime">-</span>
+            </div>
+          </div>
         </div>
         <div style="margin-top:1.2rem; display:flex; justify-content:flex-end;">
           <button class="btn btn-primary" id="btnUpload" onclick="uploadPDF()" disabled>
@@ -400,7 +603,7 @@
     <!-- STEP 2: TRANSLATE -->
     <div id="step2" class="hidden">
       <div class="card">
-        <h2><span class="icon">&#127760;</span> Traducir documento</h2>
+        <h2><span class="icon">&#127760;</span> Paso 2 &mdash; Traducir documento</h2>
         <p style="color:var(--muted); font-size:.9rem;">
           El documento tiene <strong id="paraCount">0</strong> p&aacute;rrafos detectados.
           Cada p&aacute;rrafo se traduce preservando el formato original.
@@ -425,65 +628,123 @@
               <option value="zh-CN">Chino</option>
             </select>
           </div>
-          <div class="field">
-            <label>Motor IA (refinamiento)</label>
-            <select id="aiProvider">
-              <option value="gemini">&#10024; Gemini (gratis)</option>
-              <option value="claude">&#129302; Claude (Anthropic)</option>
-            </select>
-          </div>
-          <label class="toggle-label">
-            <input type="checkbox" id="useAI" />
-            Refinar con IA (m&aacute;s lento, mejor calidad)
-          </label>
         </div>
+        <p style="color:var(--muted); font-size:.85rem; margin-top:.5rem;">
+          &#9989; Google Translate + Reglas ling&uuml;&iacute;sticas + Corrector gramatical (LanguageTool)
+        </p>
 
         <div style="margin-top:1.2rem; display:flex; gap:.7rem; flex-wrap:wrap;">
           <button class="btn btn-primary" id="btnTranslate" onclick="translateDocument()">
-            &#128640; Traducir todo el documento
+            &#128640; Traducir documento
           </button>
         </div>
 
         <!-- Translation Progress -->
-        <div id="translateProgress" class="hidden">
-          <div class="progress-bar"><div class="progress-fill" id="translateProgressFill" style="width:0%"></div></div>
-          <div class="status-msg working" id="translateStatus">Traduciendo p&aacute;rrafos...</div>
+        <div id="translateProgress" class="hidden" style="margin-top:1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.4rem;">
+            <span style="font-size:.8rem; color:var(--muted);" id="translateStepLabel">Traduciendo
+              p&aacute;rrafos...</span>
+            <span style="font-size:.8rem; color:var(--accent);" id="translatePct">0%</span>
+          </div>
+          <div class="progress-bar" style="height:8px;">
+            <div class="progress-fill" id="translateProgressFill" style="width:0%"></div>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:.5rem;">
+            <span class="status-msg working" id="translateStatus" style="flex:1;">Iniciando traducci&oacute;n...</span>
+            <button class="btn btn-secondary btn-sm" id="btnCancel" onclick="cancelTranslation()"
+              style="margin-left:.7rem;">&#9995; Cancelar</button>
+          </div>
+          <div id="translateETA" style="margin-top:.5rem; display:flex; gap:1.5rem; flex-wrap:wrap;">
+            <div class="stat-item">
+              <span class="stat-label">Progreso</span>
+              <span class="stat-value" id="etaDone">0 / 0</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Transcurrido</span>
+              <span class="stat-value" id="etaElapsed">-</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Restante</span>
+              <span class="stat-value" id="etaRemaining">calculando...</span>
+            </div>
+          </div>
         </div>
 
         <!-- Translation Result -->
-        <div id="translateResult" class="hidden">
-          <div class="status-msg success" id="translateResultMsg"></div>
+        <div id="translateDone" class="hidden" style="margin-top:1rem;">
+          <div class="status-msg success" id="translateDoneMsg"></div>
+          <div class="step-stats" style="display:flex; gap:1.5rem; margin-top:.8rem; flex-wrap:wrap;">
+            <div class="stat-item">
+              <span class="stat-label">Traducidos</span>
+              <span class="stat-value" id="statTranslated">-</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Errores</span>
+              <span class="stat-value" id="statErrors">-</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Tiempo total</span>
+              <span class="stat-value" id="statTranslateTime">-</span>
+            </div>
+          </div>
+          <div style="margin-top:1rem; display:flex; justify-content:flex-end;">
+            <button class="btn btn-primary" onclick="goStep(3)">Continuar a descarga &#8594;</button>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- STEP 3: GENERATE PDF -->
+    <!-- STEP 3: DOWNLOAD -->
     <div id="step3" class="hidden">
       <div class="card">
-        <h2><span class="icon">&#128230;</span> Generar PDF traducido</h2>
-        <p style="color:var(--muted); font-size:.9rem; margin-bottom:1.2rem;">
-          El DOCX traducido se convertir&aacute; de vuelta a PDF preservando el layout original.
+        <h2><span class="icon">&#128229;</span> Paso 3 &mdash; Generar y descargar PDF</h2>
+        <p style="color:var(--muted); font-size:.9rem;">
+          El documento traducido se convierte de vuelta a PDF preservando el formato.
         </p>
 
-        <button class="btn btn-primary" id="btnGenerate" onclick="generatePDF()">
-          &#128196; Generar PDF final
-        </button>
-
-        <div id="generateProgress" class="hidden" style="margin-top:1rem;">
-          <div class="progress-bar"><div class="progress-fill" style="width:50%"></div></div>
-          <div class="status-msg working">Convirtiendo DOCX a PDF...</div>
+        <!-- Generate Progress -->
+        <div id="generateProgress" style="margin-top:1rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.4rem;">
+            <span style="font-size:.8rem; color:var(--muted);">Generando PDF...</span>
+            <span style="font-size:.8rem; color:var(--accent);" id="genPct">0%</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill" id="genProgressFill" style="width:0%"></div>
+          </div>
+          <div class="status-msg working" id="genStatus" style="margin-top:.5rem;">Preparando generaci&oacute;n del
+            PDF...</div>
         </div>
 
-        <div id="generateResult" class="hidden" style="margin-top:1.2rem;">
-          <div class="file-info">
-            <span class="fi-icon">&#9989;</span>
-            <div>
-              <div class="fi-name">PDF generado con &eacute;xito</div>
-              <div class="fi-meta" id="downloadInfo">&mdash;</div>
+        <!-- Generate Done / Download -->
+        <div id="generateDone" class="hidden" style="margin-top:1rem;">
+          <div class="status-msg success" id="genDoneMsg"></div>
+          <div class="step-stats" style="display:flex; gap:1.5rem; margin-top:.8rem; flex-wrap:wrap;">
+            <div class="stat-item">
+              <span class="stat-label">Tama&ntilde;o PDF</span>
+              <span class="stat-value" id="statOutputSize">-</span>
             </div>
-            <a id="downloadBtn" href="#" class="btn btn-green" style="margin-left:auto;" download>
-              &#11015; Descargar
+            <div class="stat-item">
+              <span class="stat-label">Tiempo generaci&oacute;n</span>
+              <span class="stat-value" id="statGenTime">-</span>
+            </div>
+            <div class="stat-item">
+              <span class="stat-label">Tiempo total</span>
+              <span class="stat-value" id="statTotalTime">-</span>
+            </div>
+          </div>
+          <div style="margin-top:1.2rem; display:flex; gap:.7rem; align-items:center; flex-wrap:wrap;">
+            <a id="downloadBtn" href="#" class="btn btn-green" style="font-size:1rem; padding:.8rem 1.6rem;" download>
+              &#11015; Descargar PDF traducido
             </a>
+            <button class="btn btn-secondary" onclick="resetAll()">&#128260; Traducir otro PDF</button>
+          </div>
+        </div>
+
+        <!-- Error -->
+        <div id="generateError" class="hidden" style="margin-top:1rem;">
+          <div class="status-msg error" id="genErrorMsg"></div>
+          <div style="margin-top:.8rem;">
+            <button class="btn btn-secondary" onclick="retryGenerate()">&#128260; Reintentar</button>
           </div>
         </div>
       </div>
@@ -501,6 +762,9 @@
       totalPages: 0,
       totalParagraphs: 0,
       paragraphsPreview: [],
+      uploadSeconds: 0,
+      translateSeconds: 0,
+      generateSeconds: 0,
     };
 
     // ─── TOAST ───
@@ -522,16 +786,18 @@
         el.classList.remove('active');
         if (i + 1 === n) el.classList.add('active');
       });
+      // Auto-generate PDF when entering step 3
+      if (n === 3 && !document.getElementById('generateDone').classList.contains('was-generated')) {
+        autoGeneratePDF();
+      }
     }
 
     function unlockStep(n) {
-      const tab = document.getElementById('step' + n + '-tab');
-      tab.classList.remove('locked');
+      document.getElementById('step' + n + '-tab').classList.remove('locked');
     }
 
     function markStepDone(n) {
-      const tab = document.getElementById('step' + n + '-tab');
-      tab.classList.add('done');
+      document.getElementById('step' + n + '-tab').classList.add('done');
     }
 
     // ─── UPLOAD ───
@@ -576,33 +842,49 @@
       btn.innerHTML = '<span class="spinner"></span> Subiendo...';
 
       document.getElementById('uploadProgress').classList.remove('hidden');
-      document.getElementById('uploadProgressFill').style.width = '30%';
-      document.getElementById('uploadStatus').textContent = 'Subiendo PDF...';
+      document.getElementById('uploadDone').classList.add('hidden');
+      setUploadProgress(10, 'Subiendo PDF al servidor...');
 
       const fd = new FormData();
       fd.append('file', f);
 
-      try {
-        document.getElementById('uploadProgressFill').style.width = '60%';
-        document.getElementById('uploadStatus').textContent = 'Convirtiendo PDF a DOCX (preservando layout)...';
+      // Simulated progress during upload
+      let fakePct = 10;
+      const fakeInterval = setInterval(() => {
+        fakePct = Math.min(fakePct + Math.random() * 8, 85);
+        const label = fakePct < 40 ? 'Subiendo PDF al servidor...' : 'Convirtiendo PDF a DOCX (preservando layout)...';
+        setUploadProgress(Math.round(fakePct), label);
+      }, 600);
 
+      try {
         const r = await fetch(API + '/upload', { method: 'POST', body: fd });
         const d = await r.json();
+        clearInterval(fakeInterval);
 
         if (d.error) {
           toast(d.error, 'error');
           btn.disabled = false;
           btn.textContent = 'Subir y continuar \u2192';
+          document.getElementById('uploadProgress').classList.add('hidden');
           return;
         }
 
-        document.getElementById('uploadProgressFill').style.width = '100%';
-        document.getElementById('uploadStatus').textContent = '\u2705 PDF convertido a DOCX correctamente';
+        setUploadProgress(100, '\u2705 PDF subido y convertido correctamente');
 
         state.sessionId = d.session_id;
         state.totalPages = d.total_pages;
         state.totalParagraphs = d.total_paragraphs;
         state.paragraphsPreview = d.paragraphs_preview || [];
+        state.uploadSeconds = d.upload_seconds || 0;
+
+        // Show upload summary
+        document.getElementById('uploadProgress').classList.add('hidden');
+        document.getElementById('uploadDone').classList.remove('hidden');
+        document.getElementById('uploadDoneMsg').textContent = '\u2705 PDF subido y convertido exitosamente';
+        document.getElementById('statPages').textContent = d.total_pages;
+        document.getElementById('statParas').textContent = d.total_paragraphs;
+        document.getElementById('statSize').textContent = (d.file_size_mb || (f.size / 1024 / 1024).toFixed(2)) + ' MB';
+        document.getElementById('statUploadTime').textContent = formatTime(d.upload_seconds || 0);
 
         toast(d.total_pages + ' p\u00e1ginas, ' + d.total_paragraphs + ' p\u00e1rrafos detectados', 'success');
 
@@ -612,14 +894,24 @@
 
         markStepDone(1);
         unlockStep(2);
+        btn.innerHTML = '\u2705 Subido';
 
-        setTimeout(() => goStep(2), 600);
+        setTimeout(() => goStep(2), 800);
 
       } catch (e) {
+        clearInterval(fakeInterval);
         toast('Error: ' + e.message, 'error');
         btn.disabled = false;
         btn.textContent = 'Subir y continuar \u2192';
+        document.getElementById('uploadProgress').classList.add('hidden');
       }
+    }
+
+    function setUploadProgress(pct, label) {
+      document.getElementById('uploadProgressFill').style.width = pct + '%';
+      document.getElementById('uploadPct').textContent = pct + '%';
+      if (label) document.getElementById('uploadStatus').textContent = label;
+      document.getElementById('uploadStepLabel').textContent = pct < 40 ? 'Subiendo archivo' : pct < 100 ? 'Convirtiendo a DOCX' : 'Completado';
     }
 
     // ─── PARAGRAPH PREVIEW ───
@@ -651,27 +943,24 @@
     }
 
     // ─── TRANSLATE ───
+    let pollTimer = null;
+
     async function translateDocument() {
       const btn = document.getElementById('btnTranslate');
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Traduciendo...';
+      btn.innerHTML = '<span class="spinner"></span> Iniciando...';
 
       document.getElementById('translateProgress').classList.remove('hidden');
-      document.getElementById('translateResult').classList.add('hidden');
-      document.getElementById('translateProgressFill').style.width = '10%';
+      document.getElementById('translateDone').classList.add('hidden');
+      document.getElementById('translateProgressFill').style.width = '0%';
+      document.getElementById('translatePct').textContent = '0%';
+      document.getElementById('translateStatus').className = 'status-msg working';
+      document.getElementById('translateStatus').textContent = 'Iniciando traducci\u00f3n...';
+      document.getElementById('etaDone').textContent = '0 / ' + state.totalParagraphs;
+      document.getElementById('etaElapsed').textContent = '-';
+      document.getElementById('etaRemaining').textContent = 'calculando...';
 
       const sourceLang = document.getElementById('sourceLang').value;
-      const useAI = document.getElementById('useAI').checked;
-      const provider = document.getElementById('aiProvider').value;
-
-      // Animate progress bar during translation
-      let progress = 10;
-      const progressInterval = setInterval(() => {
-        if (progress < 85) {
-          progress += Math.random() * 3;
-          document.getElementById('translateProgressFill').style.width = Math.min(progress, 85) + '%';
-        }
-      }, 1000);
 
       try {
         const r = await fetch(API + '/translate-docx', {
@@ -680,54 +969,151 @@
           body: JSON.stringify({
             session_id: state.sessionId,
             source_lang: sourceLang,
-            use_ai: useAI,
-            provider: provider,
+            use_ai: false,
+            provider: 'none',
           }),
         });
 
-        clearInterval(progressInterval);
         const d = await r.json();
 
         if (d.error) {
-          document.getElementById('translateProgressFill').style.width = '100%';
           document.getElementById('translateStatus').className = 'status-msg error';
           document.getElementById('translateStatus').textContent = 'Error: ' + d.error;
           toast(d.error, 'error');
           btn.disabled = false;
-          btn.innerHTML = '\ud83d\ude80 Traducir todo el documento';
+          btn.innerHTML = '\ud83d\ude80 Traducir documento';
           return;
         }
 
-        document.getElementById('translateProgressFill').style.width = '100%';
-        document.getElementById('translateProgress').classList.add('hidden');
-        document.getElementById('translateResult').classList.remove('hidden');
-        document.getElementById('translateResultMsg').textContent =
-          '\u2705 ' + d.translated + ' de ' + d.total_paragraphs + ' p\u00e1rrafos traducidos (' + d.method + ')';
-
-        toast('Traducci\u00f3n completada', 'success');
-
-        markStepDone(2);
-        unlockStep(3);
-
-        btn.disabled = false;
-        btn.innerHTML = '\ud83d\ude80 Traducir todo el documento';
+        btn.innerHTML = '<span class="spinner"></span> Traduciendo...';
+        pollTranslationProgress();
 
       } catch (e) {
-        clearInterval(progressInterval);
         toast('Error: ' + e.message, 'error');
         btn.disabled = false;
-        btn.innerHTML = '\ud83d\ude80 Traducir todo el documento';
+        btn.innerHTML = '\ud83d\ude80 Traducir documento';
       }
     }
 
-    // ─── GENERATE PDF ───
-    async function generatePDF() {
-      const btn = document.getElementById('btnGenerate');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span> Generando...';
+    function pollTranslationProgress() {
+      if (pollTimer) clearInterval(pollTimer);
 
-      document.getElementById('generateProgress').classList.remove('hidden');
-      document.getElementById('generateResult').classList.add('hidden');
+      pollTimer = setInterval(async () => {
+        try {
+          const r = await fetch(API + '/translate-progress/' + state.sessionId);
+          const d = await r.json();
+          if (d.error && d.status === 'none') return;
+
+          const pct = d.progress_percent || 0;
+          document.getElementById('translateProgressFill').style.width = pct + '%';
+          document.getElementById('translatePct').textContent = Math.round(pct) + '%';
+
+          if (d.status === 'translating' || d.status === 'starting') {
+            document.getElementById('translateStepLabel').textContent = 'Traduciendo p\u00e1rrafos';
+            document.getElementById('translateStatus').textContent = 'Traduciendo p\u00e1rrafo ' + d.translated + ' de ' + d.total;
+            document.getElementById('etaDone').textContent = d.translated + ' / ' + d.total;
+            if (d.elapsed_seconds != null) {
+              document.getElementById('etaElapsed').textContent = formatTime(d.elapsed_seconds);
+            }
+            if (d.eta_seconds != null && d.eta_seconds > 0) {
+              document.getElementById('etaRemaining').textContent = '~' + formatTime(d.eta_seconds);
+            }
+
+          } else if (d.status === 'completed') {
+            clearInterval(pollTimer);
+            pollTimer = null;
+
+            state.translateSeconds = d.total_seconds || 0;
+
+            document.getElementById('translateProgressFill').style.width = '100%';
+            document.getElementById('translatePct').textContent = '100%';
+            document.getElementById('translateProgress').classList.add('hidden');
+            document.getElementById('translateDone').classList.remove('hidden');
+
+            document.getElementById('translateDoneMsg').textContent = '\u2705 Traducci\u00f3n completada exitosamente';
+            document.getElementById('statTranslated').textContent = d.translated + ' / ' + d.total;
+            document.getElementById('statErrors').textContent = (d.errors || []).length;
+            document.getElementById('statTranslateTime').textContent = formatTime(d.total_seconds || 0);
+
+            toast('Traducci\u00f3n completada', 'success');
+            markStepDone(2);
+            unlockStep(3);
+
+            const btn = document.getElementById('btnTranslate');
+            btn.disabled = false;
+            btn.innerHTML = '\u2705 Traducido';
+
+          } else if (d.status === 'error') {
+            clearInterval(pollTimer);
+            pollTimer = null;
+
+            document.getElementById('translateStatus').className = 'status-msg error';
+            document.getElementById('translateStatus').textContent = 'Error: ' + (d.error_message || 'Error desconocido');
+            toast('Error en traducci\u00f3n', 'error');
+
+            const btn = document.getElementById('btnTranslate');
+            btn.disabled = false;
+            btn.innerHTML = '\ud83d\ude80 Traducir documento';
+
+          } else if (d.status === 'cancelled') {
+            clearInterval(pollTimer);
+            pollTimer = null;
+
+            document.getElementById('translateStatus').className = 'status-msg error';
+            document.getElementById('translateStatus').textContent = 'Traducci\u00f3n cancelada';
+            toast('Traducci\u00f3n cancelada', 'info');
+
+            const btn = document.getElementById('btnTranslate');
+            btn.disabled = false;
+            btn.innerHTML = '\ud83d\ude80 Traducir documento';
+          }
+        } catch (e) {
+          console.error('Error polling progress:', e);
+        }
+      }, 1500);
+    }
+
+    async function cancelTranslation() {
+      try {
+        await fetch(API + '/translate-cancel/' + state.sessionId, { method: 'POST' });
+        toast('Cancelando traducci\u00f3n...', 'info');
+      } catch (e) {
+        console.error('Error cancelling:', e);
+      }
+    }
+
+    function formatTime(seconds) {
+      seconds = Math.round(seconds);
+      if (seconds < 60) return seconds + 's';
+      const min = Math.floor(seconds / 60);
+      const sec = seconds % 60;
+      if (min < 60) return min + 'min ' + sec + 's';
+      const hr = Math.floor(min / 60);
+      const rm = min % 60;
+      return hr + 'h ' + rm + 'min';
+    }
+
+    // ─── STEP 3: GENERATE PDF ───
+    async function autoGeneratePDF() {
+      const doneEl = document.getElementById('generateDone');
+      const progressEl = document.getElementById('generateProgress');
+      const errorEl = document.getElementById('generateError');
+
+      doneEl.classList.add('hidden');
+      errorEl.classList.add('hidden');
+      progressEl.classList.remove('hidden');
+
+      document.getElementById('genProgressFill').style.width = '20%';
+      document.getElementById('genPct').textContent = '20%';
+      document.getElementById('genStatus').textContent = 'Convirtiendo DOCX traducido a PDF...';
+
+      // Simulated progress
+      let fakePct = 20;
+      const fakeInterval = setInterval(() => {
+        fakePct = Math.min(fakePct + Math.random() * 12, 90);
+        document.getElementById('genProgressFill').style.width = Math.round(fakePct) + '%';
+        document.getElementById('genPct').textContent = Math.round(fakePct) + '%';
+      }, 400);
 
       try {
         const r = await fetch(API + '/generate-pdf', {
@@ -737,33 +1123,86 @@
         });
 
         const d = await r.json();
-
-        document.getElementById('generateProgress').classList.add('hidden');
+        clearInterval(fakeInterval);
 
         if (d.error) {
+          progressEl.classList.add('hidden');
+          errorEl.classList.remove('hidden');
+          document.getElementById('genErrorMsg').textContent = 'Error: ' + d.error;
           toast(d.error, 'error');
-          btn.disabled = false;
-          btn.innerHTML = '\ud83d\udcc4 Generar PDF final';
           return;
         }
 
-        document.getElementById('generateResult').classList.remove('hidden');
-        document.getElementById('downloadInfo').textContent = d.filename;
-        document.getElementById('downloadBtn').href = API + '/download/' + state.sessionId + '/' + d.filename;
+        document.getElementById('genProgressFill').style.width = '100%';
+        document.getElementById('genPct').textContent = '100%';
+        document.getElementById('genStatus').textContent = '\u2705 PDF generado correctamente';
 
-        toast('\u00a1PDF generado!', 'success');
-        markStepDone(3);
-        launchConfetti();
+        state.generateSeconds = d.generate_seconds || 0;
 
-        btn.disabled = false;
-        btn.innerHTML = '\ud83d\udcc4 Generar PDF final';
+        setTimeout(() => {
+          progressEl.classList.add('hidden');
+          doneEl.classList.remove('hidden');
+          doneEl.classList.add('was-generated');
+
+          document.getElementById('genDoneMsg').textContent = '\u2705 PDF traducido listo para descargar';
+          document.getElementById('statOutputSize').textContent = (d.output_size_mb || '?') + ' MB';
+          document.getElementById('statGenTime').textContent = formatTime(d.generate_seconds || 0);
+          const totalTime = state.uploadSeconds + state.translateSeconds + state.generateSeconds;
+          document.getElementById('statTotalTime').textContent = formatTime(totalTime);
+
+          document.getElementById('downloadBtn').href = API + '/download/' + state.sessionId + '/' + d.filename;
+
+          markStepDone(3);
+          toast('\u00a1PDF listo para descargar!', 'success');
+          launchConfetti();
+        }, 500);
 
       } catch (e) {
-        document.getElementById('generateProgress').classList.add('hidden');
-        toast('Error: ' + e.message, 'error');
-        btn.disabled = false;
-        btn.innerHTML = '\ud83d\udcc4 Generar PDF final';
+        clearInterval(fakeInterval);
+        progressEl.classList.add('hidden');
+        errorEl.classList.remove('hidden');
+        document.getElementById('genErrorMsg').textContent = 'Error: ' + e.message;
+        toast('Error generando PDF: ' + e.message, 'error');
       }
+    }
+
+    function retryGenerate() {
+      document.getElementById('generateDone').classList.remove('was-generated');
+      autoGeneratePDF();
+    }
+
+    function resetAll() {
+      state = { sessionId: null, totalPages: 0, totalParagraphs: 0, paragraphsPreview: [], uploadSeconds: 0, translateSeconds: 0, generateSeconds: 0 };
+
+      // Reset step tabs
+      for (let i = 1; i <= 3; i++) {
+        const tab = document.getElementById('step' + i + '-tab');
+        tab.classList.remove('done', 'active', 'locked');
+        if (i === 1) tab.classList.add('active');
+        else tab.classList.add('locked');
+      }
+
+      // Reset step 1
+      fileInput.value = '';
+      document.getElementById('fileInfo').classList.add('hidden');
+      document.getElementById('uploadProgress').classList.add('hidden');
+      document.getElementById('uploadDone').classList.add('hidden');
+      document.getElementById('btnUpload').disabled = true;
+      document.getElementById('btnUpload').textContent = 'Subir y continuar \u2192';
+
+      // Reset step 2
+      document.getElementById('translateProgress').classList.add('hidden');
+      document.getElementById('translateDone').classList.add('hidden');
+      document.getElementById('btnTranslate').disabled = false;
+      document.getElementById('btnTranslate').innerHTML = '\ud83d\ude80 Traducir documento';
+      document.getElementById('paraPreview').innerHTML = '';
+
+      // Reset step 3
+      document.getElementById('generateDone').classList.add('hidden');
+      document.getElementById('generateDone').classList.remove('was-generated');
+      document.getElementById('generateError').classList.add('hidden');
+
+      goStep(1);
     }
 
     // ─── CONFETTI ───
@@ -786,4 +1225,5 @@
     }
   </script>
 </body>
+
 </html>

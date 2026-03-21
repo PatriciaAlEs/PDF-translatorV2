@@ -16,6 +16,9 @@ import re
 import json
 import uuid
 import shutil
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
 from flask import Flask, request, jsonify, send_file
 from flask_cors import CORS
@@ -29,6 +32,9 @@ CORS(app)
 BASE_DIR = Path(__file__).parent.parent
 SESSIONS_DIR = BASE_DIR / "sessions"
 SESSIONS_DIR.mkdir(exist_ok=True)
+
+# Active translation jobs (in-memory progress tracking)
+translation_jobs = {}
 
 # ─────────────────────────────────────────────
 # SESIONES
@@ -57,14 +63,20 @@ def load_session_meta(session_id):
 
 def post_process_spanish(text):
     """Pipeline completo de post-procesamiento para texto literario en espanol."""
+    try:
+        from spanish_rules import apply_spanish_rules
+    except ImportError:
+        from backend.spanish_rules import apply_spanish_rules
     text = fix_whitespace(text)
     text = fix_dialogues(text)
+    text = apply_spanish_rules(text)
     text = fix_punctuation_spacing(text)
     text = capitalize_after_period(text)
     text = fix_opening_marks(text)
     text = fix_paragraph_structure(text)
     text = fix_ellipsis(text)
     text = fix_ordinals(text)
+    text = fix_grammar_languagetool(text)
     return text
 
 
@@ -255,6 +267,67 @@ def fix_ordinals(text):
     return text
 
 
+def fix_grammar_languagetool(text):
+    """Use LanguageTool public API to fix grammar, spelling, and accents in Spanish."""
+    import requests as _requests
+    if not text.strip():
+        return text
+
+    # Split into chunks (API limit ~20KB per request)
+    MAX_CHUNK = 15000
+    paragraphs = text.split('\n')
+    chunks = []
+    current = ""
+    for p in paragraphs:
+        if len(current) + len(p) + 1 > MAX_CHUNK and current:
+            chunks.append(current)
+            current = p
+        else:
+            current = current + '\n' + p if current else p
+    if current:
+        chunks.append(current)
+
+    corrected_chunks = []
+    for chunk in chunks:
+        try:
+            r = _requests.post(
+                'https://api.languagetool.org/v2/check',
+                data={'text': chunk, 'language': 'es'},
+                timeout=30,
+            )
+            if r.status_code != 200:
+                corrected_chunks.append(chunk)
+                continue
+
+            matches = r.json().get('matches', [])
+            # Filter out corrections that change proper nouns (capitalized words)
+            safe_matches = []
+            for m in matches:
+                if not m.get('replacements'):
+                    continue
+                original_word = chunk[m['offset']:m['offset'] + m['length']]
+                # Skip if it looks like a proper noun (capitalized, not start of sentence)
+                if (original_word and original_word[0].isupper()
+                        and m['offset'] > 0
+                        and chunk[m['offset'] - 1] not in '.?!¿¡\n'
+                        and m['rule']['id'] == 'MORFOLOGIK_RULE_ES'):
+                    continue
+                safe_matches.append(m)
+            # Apply corrections in reverse order to preserve offsets
+            result = chunk
+            for m in reversed(safe_matches):
+                if m.get('replacements'):
+                    start = m['offset']
+                    end = start + m['length']
+                    result = result[:start] + m['replacements'][0]['value'] + result[end:]
+            corrected_chunks.append(result)
+        except Exception as e:
+            print(f"LanguageTool API error: {e}")
+            corrected_chunks.append(chunk)
+
+    return '\n'.join(corrected_chunks)
+
+
 # ─────────────────────────────────────────────
 # TRADUCCION: Google Translate (chunked)
 # ─────────────────────────────────────────────
@@ -419,9 +492,64 @@ def _pdf_to_docx(pdf_path, docx_path):
 
 
 def _docx_to_pdf(docx_path, pdf_path):
-    """Convert DOCX back to PDF via MS Word / LibreOffice."""
-    from docx2pdf import convert
-    convert(str(docx_path), str(pdf_path))
+    """Convert DOCX back to PDF using pure Python (fpdf2 + python-docx).
+    No MS Word or LibreOffice needed. Uses Unicode TTF font."""
+    from docx import Document
+    from fpdf import FPDF
+
+    doc = Document(str(docx_path))
+
+    pdf = FPDF()
+    pdf.set_auto_page_break(auto=True, margin=20)
+    pdf.add_page()
+
+    # Register a Unicode TTF font (Windows Arial)
+    font_path = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / "arial.ttf"
+    font_bold = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / "arialbd.ttf"
+    font_italic = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / "ariali.ttf"
+    font_bi = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / "arialbi.ttf"
+
+    if font_path.exists():
+        pdf.add_font("ArialUni", "", str(font_path), uni=True)
+        if font_bold.exists():
+            pdf.add_font("ArialUni", "B", str(font_bold), uni=True)
+        if font_italic.exists():
+            pdf.add_font("ArialUni", "I", str(font_italic), uni=True)
+        if font_bi.exists():
+            pdf.add_font("ArialUni", "BI", str(font_bi), uni=True)
+        font_family = "ArialUni"
+    else:
+        # Fallback for non-Windows systems
+        pdf.add_font("DejaVu", "", str(Path(__file__).parent / "DejaVuSans.ttf"), uni=True)
+        font_family = "DejaVu"
+
+    pdf.set_font(font_family, size=11)
+
+    for para in doc.paragraphs:
+        text = para.text
+        if not text.strip():
+            pdf.ln(4)
+            continue
+
+        # Detect bold/italic from first run, but use uniform font size
+        bold = False
+        italic = False
+        if para.runs:
+            run = para.runs[0]
+            bold = run.bold or False
+            italic = run.italic or False
+
+        style = ""
+        if bold:
+            style += "B"
+        if italic:
+            style += "I"
+
+        pdf.set_font(font_family, style=style, size=11)
+        pdf.multi_cell(0, 6, text)
+        pdf.ln(2)
+
+    pdf.output(str(pdf_path))
 
 
 def _extract_paragraphs(docx_path):
@@ -494,6 +622,115 @@ def _apply_translation_to_paragraph(para, translated_text):
         run.text = ""
 
 
+def _translate_single_paragraph(text, source_lang, use_ai, provider):
+    """Translate a single paragraph's text. Thread-safe (pure function)."""
+    translated = _translate_text_google(text, source_lang)
+    if use_ai:
+        try:
+            if provider == "gemini":
+                translated = _gemini(translated, is_google_result=True)
+            else:
+                translated = _claude(translated, is_google_result=True)
+        except Exception as ai_err:
+            print(f"AI refinement failed, using Google result: {ai_err}")
+    return post_process_spanish(translated)
+
+
+def _translate_docx_background(session_id, docx_path, output_path,
+                                source_lang, use_ai, provider):
+    """Background job: translate all paragraphs with parallel workers."""
+    from docx import Document
+
+    job = translation_jobs[session_id]
+    job["status"] = "translating"
+    job["started_at"] = time.time()
+
+    try:
+        doc = Document(str(docx_path))
+
+        # Collect paragraphs to translate
+        work_items = []
+        for i, para in enumerate(doc.paragraphs):
+            text = para.text.strip()
+            if text and len(text) >= 3:
+                work_items.append((i, text))
+
+        total = len(work_items)
+        job["total"] = total
+        job["translated"] = 0
+
+        if total == 0:
+            job["status"] = "completed"
+            job["finished_at"] = time.time()
+            doc.save(str(output_path))
+            return
+
+        # Fewer workers when using AI (API rate limits)
+        max_workers = 2 if use_ai else 4
+        translations = {}
+
+        with ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = {
+                executor.submit(
+                    _translate_single_paragraph, text, source_lang, use_ai, provider
+                ): idx
+                for idx, text in work_items
+            }
+
+            for future in as_completed(futures):
+                if job.get("cancelled"):
+                    for f in futures:
+                        f.cancel()
+                    job["status"] = "cancelled"
+                    return
+
+                idx = futures[future]
+                try:
+                    translated_text = future.result()
+                    translations[idx] = translated_text
+                except Exception as e:
+                    job["errors"].append(f"Párrafo {idx}: {str(e)}")
+                    print(f"Error translating paragraph {idx}: {e}")
+
+                job["translated"] += 1
+                elapsed = time.time() - job["started_at"]
+                done = job["translated"]
+                if done > 0:
+                    rate = elapsed / done
+                    job["eta_seconds"] = int((total - done) * rate)
+
+        if job.get("cancelled"):
+            job["status"] = "cancelled"
+            return
+
+        # Apply translations back to document (sequential)
+        if not translations:
+            job["status"] = "error"
+            job["error_message"] = f"Ningún párrafo se tradujo correctamente. Errores: {'; '.join(job['errors'][:3])}"
+            print(f"Translation failed for {session_id}: no paragraphs translated. Errors: {job['errors']}")
+            return
+
+        for i, para in enumerate(doc.paragraphs):
+            if i in translations:
+                _apply_translation_to_paragraph(para, translations[i])
+
+        doc.save(str(output_path))
+        print(f"Saved translated DOCX: {output_path} ({len(translations)}/{total} paragraphs)")
+
+        job["status"] = "completed"
+        job["finished_at"] = time.time()
+
+        meta = load_session_meta(session_id)
+        meta["status"] = "translated"
+        meta["translation_method"] = f"google{'+' + provider if use_ai else ''}"
+        save_session_meta(session_id, meta)
+
+    except Exception as e:
+        job["status"] = "error"
+        job["error_message"] = str(e)
+        print(f"Translation job failed for {session_id}: {e}")
+
+
 # ─────────────────────────────────────────────
 # NEW API: DOCX PIPELINE
 # ─────────────────────────────────────────────
@@ -507,6 +744,8 @@ def upload_pdf():
     if not file.filename.lower().endswith(".pdf"):
         return jsonify({"error": "El archivo debe ser un PDF"}), 400
 
+    upload_start = time.time()
+
     session_id = str(uuid.uuid4())
     session_path = get_session_path(session_id)
 
@@ -517,6 +756,7 @@ def upload_pdf():
     import fitz
     doc = fitz.open(str(pdf_path))
     total_pages = len(doc)
+    file_size_mb = round(pdf_path.stat().st_size / 1024 / 1024, 2)
     doc.close()
 
     # Auto-convert PDF -> DOCX
@@ -528,11 +768,15 @@ def upload_pdf():
 
     paragraphs = _extract_paragraphs(docx_path)
 
+    upload_seconds = round(time.time() - upload_start, 1)
+
     meta = {
         "session_id": session_id,
         "original_filename": file.filename,
         "total_pages": total_pages,
         "total_paragraphs": len(paragraphs),
+        "file_size_mb": file_size_mb,
+        "upload_seconds": upload_seconds,
         "status": "uploaded",
     }
     save_session_meta(session_id, meta)
@@ -542,6 +786,8 @@ def upload_pdf():
         "filename": file.filename,
         "total_pages": total_pages,
         "total_paragraphs": len(paragraphs),
+        "file_size_mb": file_size_mb,
+        "upload_seconds": upload_seconds,
         "paragraphs_preview": paragraphs[:20],
     })
 
@@ -560,8 +806,8 @@ def get_paragraphs(session_id):
 @app.route("/api/translate-docx", methods=["POST"])
 def translate_docx():
     """
-    Translate all paragraphs in the DOCX in-place.
-    Preserves formatting, images, layout from original.
+    Start background translation of all paragraphs in the DOCX.
+    Returns immediately; poll /api/translate-progress/<session_id> for status.
     """
     data = request.json
     session_id = data.get("session_id")
@@ -580,26 +826,76 @@ def translate_docx():
     if not docx_path.exists():
         return jsonify({"error": "DOCX original no encontrado"}), 404
 
-    try:
-        stats = _translate_docx_in_place(
-            docx_path, translated_docx,
-            source_lang=source_lang,
-            use_ai=use_ai,
-            provider=provider,
-        )
+    # Prevent duplicate jobs
+    if session_id in translation_jobs and translation_jobs[session_id].get("status") == "translating":
+        return jsonify({"error": "Ya hay una traducción en curso"}), 409
 
-        meta["status"] = "translated"
-        meta["translation_method"] = f"google{'+' + provider if use_ai else ''}"
-        save_session_meta(session_id, meta)
+    # Initialize job tracker
+    translation_jobs[session_id] = {
+        "status": "starting",
+        "total": meta.get("total_paragraphs", 0),
+        "translated": 0,
+        "errors": [],
+        "eta_seconds": None,
+        "started_at": None,
+        "finished_at": None,
+        "cancelled": False,
+        "error_message": None,
+    }
 
-        return jsonify({
-            "success": True,
-            "total_paragraphs": stats["total_paragraphs"],
-            "translated": stats["translated"],
-            "method": meta["translation_method"],
-        })
-    except Exception as e:
-        return jsonify({"error": f"Error traduciendo: {str(e)}"}), 500
+    # Launch background thread
+    thread = threading.Thread(
+        target=_translate_docx_background,
+        args=(session_id, docx_path, translated_docx, source_lang, use_ai, provider),
+        daemon=True,
+    )
+    thread.start()
+
+    return jsonify({
+        "started": True,
+        "session_id": session_id,
+        "total_paragraphs": meta.get("total_paragraphs", 0),
+    })
+
+
+@app.route("/api/translate-progress/<session_id>")
+def translate_progress(session_id):
+    """Poll translation progress for a session."""
+    job = translation_jobs.get(session_id)
+    if not job:
+        return jsonify({"status": "none", "error": "No hay traducción en curso"}), 404
+
+    result = {
+        "status": job["status"],
+        "total": job.get("total", 0),
+        "translated": job.get("translated", 0),
+        "errors": job.get("errors", []),
+        "eta_seconds": job.get("eta_seconds"),
+        "error_message": job.get("error_message"),
+    }
+
+    if job.get("total", 0) > 0:
+        result["progress_percent"] = round(job["translated"] / job["total"] * 100, 1)
+    else:
+        result["progress_percent"] = 0
+
+    if job.get("started_at"):
+        result["elapsed_seconds"] = int(time.time() - job["started_at"])
+
+    if job["status"] == "completed" and job.get("finished_at") and job.get("started_at"):
+        result["total_seconds"] = int(job["finished_at"] - job["started_at"])
+
+    return jsonify(result)
+
+
+@app.route("/api/translate-cancel/<session_id>", methods=["POST"])
+def translate_cancel(session_id):
+    """Request cancellation of an active translation job."""
+    job = translation_jobs.get(session_id)
+    if not job or job["status"] != "translating":
+        return jsonify({"error": "No hay traducción activa para cancelar"}), 404
+    job["cancelled"] = True
+    return jsonify({"success": True, "message": "Cancelación solicitada"})
 
 
 @app.route("/api/generate-pdf", methods=["POST"])
@@ -621,17 +917,25 @@ def generate_pdf():
     output_filename = f"traduccion_{session_id[:8]}.pdf"
     output_path = session_path / output_filename
 
+    gen_start = time.time()
+
     try:
         _docx_to_pdf(translated_docx, output_path)
 
+        gen_seconds = round(time.time() - gen_start, 1)
+        output_size_mb = round(output_path.stat().st_size / 1024 / 1024, 2)
+
         meta["status"] = "completed"
         meta["output_filename"] = output_filename
+        meta["generate_seconds"] = gen_seconds
         save_session_meta(session_id, meta)
 
         return jsonify({
             "success": True,
             "filename": output_filename,
             "download_url": f"/api/download/{session_id}/{output_filename}",
+            "generate_seconds": gen_seconds,
+            "output_size_mb": output_size_mb,
         })
     except Exception as e:
         return jsonify({"error": f"Error generando PDF: {str(e)}"}), 500
