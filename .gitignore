@@ -1,0 +1,45 @@
+# ─── Secrets / API keys ───
+.env
+*.env
+!.env.example
+
+# ─── Python ───
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+
+# ─── Sessions (user uploads, PDFs, DOCX, translations) ───
+pdf-translator/sessions/
+
+# ─── Uploads / output ───
+pdf-translator/uploads/
+pdf-translator/output/
+
+# ─── Test files ───
+*.pdf
+!pdf-translator/README.md
+
+# ─── OS junk ───
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ─── IDE / editor ───
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# ─── Qodo AI ───
+.qodo/
+
+# ─── Hunspell dictionaries (large binary files) ───
+pdf-translator/backend/dicts/
+
+# ─── spaCy models (downloaded at runtime) ───
+es_core_news_sm*/

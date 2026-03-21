@@ -61,8 +61,26 @@ def load_session_meta(session_id):
 # POST-PROCESAMIENTO DE TEXTO (Espanol literario)
 # ─────────────────────────────────────────────
 
-def post_process_spanish(text):
-    """Pipeline completo de post-procesamiento para texto literario en espanol."""
+def post_process_spanish(text, use_ai=False, ai_provider="gemini"):
+    """Pipeline completo de post-procesamiento para texto literario en espanol.
+    Delegates to postprocess_pipeline.run_pipeline for the full 5-step process.
+    Falls back to legacy inline pipeline if the module is unavailable.
+    """
+    try:
+        try:
+            from postprocess_pipeline import run_pipeline
+        except ImportError:
+            from backend.postprocess_pipeline import run_pipeline
+        result = run_pipeline(text, use_ai=use_ai, ai_provider=ai_provider)
+        return result["text"]
+    except Exception as e:
+        print(f"[postprocess] Pipeline module error, using legacy: {e}")
+        # Legacy fallback
+        return _legacy_post_process(text)
+
+
+def _legacy_post_process(text):
+    """Original inline post-processing (fallback if pipeline module fails)."""
     try:
         from spanish_rules import apply_spanish_rules
     except ImportError:
@@ -588,17 +606,7 @@ def _translate_docx_in_place(docx_path, output_path, source_lang="auto",
 
         try:
             translated = _translate_text_google(original_text, source_lang)
-
-            if use_ai:
-                try:
-                    if provider == "gemini":
-                        translated = _gemini(translated, is_google_result=True)
-                    else:
-                        translated = _claude(translated, is_google_result=True)
-                except Exception as ai_err:
-                    print(f"AI refinement failed, using Google result: {ai_err}")
-
-            translated = post_process_spanish(translated)
+            translated = post_process_spanish(translated, use_ai=use_ai, ai_provider=provider)
             _apply_translation_to_paragraph(para, translated)
             translated_count += 1
 
@@ -625,15 +633,9 @@ def _apply_translation_to_paragraph(para, translated_text):
 def _translate_single_paragraph(text, source_lang, use_ai, provider):
     """Translate a single paragraph's text. Thread-safe (pure function)."""
     translated = _translate_text_google(text, source_lang)
-    if use_ai:
-        try:
-            if provider == "gemini":
-                translated = _gemini(translated, is_google_result=True)
-            else:
-                translated = _claude(translated, is_google_result=True)
-        except Exception as ai_err:
-            print(f"AI refinement failed, using Google result: {ai_err}")
-    return post_process_spanish(translated)
+    # AI refinement is now handled inside the pipeline (step 5)
+    # so we pass use_ai through to post_process_spanish
+    return post_process_spanish(translated, use_ai=use_ai, ai_provider=provider)
 
 
 def _translate_docx_background(session_id, docx_path, output_path,
@@ -1043,7 +1045,7 @@ def translate_google():
                 break
         save_session_meta(session_id, meta)
 
-        return jsonify({"part_num": part_num, "translated_text": translated, "method": "google"})
+        return jsonify({"part_num": part_num, "translated_text": translated, "method": "google+pipeline"})
     except Exception as e:
         return jsonify({"error": f"Error en traducción: {str(e)}"}), 500
 
@@ -1075,7 +1077,7 @@ def translate_ai():
                 break
         save_session_meta(session_id, meta)
 
-        return jsonify({"part_num": part_num, "translated_text": translated, "method": provider})
+        return jsonify({"part_num": part_num, "translated_text": translated, "method": provider + "+pipeline"})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -1110,7 +1112,7 @@ def translate_pipeline():
                 print(f"AI failed, using Google: {ai_err}")
 
         final = post_process_spanish(ai_result)
-        steps_done.append("postprocess")
+        steps_done.append("pipeline")
 
         meta = load_session_meta(session_id)
         for part in meta.get("parts", []):
