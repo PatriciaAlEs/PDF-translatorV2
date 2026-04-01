@@ -1,122 +1,216 @@
-# 📄 PDF Translator v3
+<h1 align="center">
+  <br>
+  📄 PDF Translator
+  <br>
+</h1>
 
-Traduce PDFs completos al español castellano preservando el layout, fuentes, imágenes y tablas del original. Usa Google Translate + refinamiento opcional con IA (Gemini/Claude) y post-procesamiento lingüístico automático.
+<p align="center">
+  <strong>Translate entire PDF documents to Spanish while preserving the original layout, fonts, images, and tables.</strong>
+</p>
 
-**Pipeline:** PDF → DOCX → Traducir párrafos → DOCX traducido → PDF final
+<p align="center">
+  <img src="https://img.shields.io/badge/python-3.9+-blue?logo=python&logoColor=white" alt="Python">
+  <img src="https://img.shields.io/badge/Flask-3.0-green?logo=flask&logoColor=white" alt="Flask">
+  <img src="https://img.shields.io/badge/Google%20Translate-API-4285F4?logo=google&logoColor=white" alt="Google Translate">
+  <img src="https://img.shields.io/badge/Gemini-AI%20Refinement-8E75B2?logo=google&logoColor=white" alt="Gemini">
+  <img src="https://img.shields.io/badge/license-MIT-green" alt="License">
+</p>
+
+<p align="center">
+  <img src="https://img.shields.io/badge/NLP-spaCy-09A3D5?logo=spacy&logoColor=white" alt="spaCy">
+  <img src="https://img.shields.io/badge/Spell%20Check-Hunspell-orange" alt="Hunspell">
+  <img src="https://img.shields.io/badge/Grammar-LanguageTool-2D6BCC" alt="LanguageTool">
+</p>
 
 ---
 
-## 🚀 Instalación
+## Overview
 
-### 1. Requisitos previos
-- **Python 3.9+** con pip
-- **Microsoft Word** instalado (necesario para la conversión DOCX → PDF vía `docx2pdf`)
+PDF Translator is a full-stack web application that translates PDF documents into literary-quality Spanish. It goes beyond simple machine translation by applying a **5-stage NLP post-processing pipeline** that fixes common translation artifacts — literal calques, false friends, incorrect gerund usage, passive voice overuse, and more.
 
-### 2. Instalar dependencias
+### Key Features
 
-```bash
-cd pdf-translator
-pip install -r requirements.txt
+- **Layout preservation** — Converts PDF → DOCX → translates → DOCX → PDF, keeping the original formatting intact
+- **Parallel translation** — Multi-threaded paragraph translation with real-time progress tracking
+- **5-stage NLP pipeline** — Normalization → Hunspell spellcheck → LanguageTool grammar → spaCy linguistic rules → optional AI refinement
+- **200+ linguistic rules** — Custom regex engine fixing false friends, syntactic calques, gerund overuse, passive voice, and idiomatic expressions
+- **Optional AI refinement** — Gemini or Claude can polish translations when quality is below threshold
+- **Modern UI** — Dark-themed step-by-step interface with drag & drop, progress bars, and confetti on completion
+
+---
+
+## Architecture
+
+```
+┌─────────────┐     ┌──────────────────────────────────────────────────────┐
+│  Frontend    │     │  Backend (Flask)                                     │
+│  (HTML/JS)  │────▶│                                                      │
+│             │     │  Upload ─▶ PDF→DOCX ─▶ Extract paragraphs            │
+│  Step 1:    │     │                          │                           │
+│   Upload    │     │  Translate ─▶ Google Translate (parallel, 4 workers) │
+│             │     │                          │                           │
+│  Step 2:    │     │  Post-process ─▶ ┌──────────────────────┐            │
+│   Translate │     │                  │ 1. Normalize          │            │
+│             │     │                  │ 2. Hunspell spellcheck│            │
+│  Step 3:    │     │                  │ 3. LanguageTool grammar│           │
+│   Download  │     │                  │ 4. spaCy + regex rules│           │
+│             │     │                  │ 5. AI refinement (opt)│            │
+└─────────────┘     │                  └──────────────────────┘            │
+                    │                          │                           │
+                    │  Generate ─▶ Rebuild DOCX ─▶ DOCX→PDF              │
+                    └──────────────────────────────────────────────────────┘
 ```
 
-### 3. Configurar claves de IA (opcional)
+---
 
-Crea un archivo `.env` en la carpeta `backend/` (o en la raíz):
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Frontend** | Vanilla HTML/CSS/JS, Syne + DM Sans fonts |
+| **Backend** | Python 3.9+, Flask, Flask-CORS |
+| **PDF Processing** | pdf2docx, python-docx, fpdf2, PyMuPDF |
+| **Translation** | deep-translator (Google Translate) |
+| **NLP** | spaCy (es_core_news_sm), Hunspell, LanguageTool API |
+| **AI (optional)** | Google Gemini, Anthropic Claude |
+
+---
+
+## Linguistic Post-Processing Pipeline
+
+The core differentiator is the **Spanish literary post-processing engine** (`postprocess_pipeline.py` + `spanish_rules.py`):
+
+| Step | What it fixes | Examples |
+|------|--------------|---------|
+| **Normalize** | Whitespace, quotes, punctuation, chunking artifacts | `"Hello"` → `—Hola` (Spanish dialogue format) |
+| **Hunspell** | Basic Spanish spelling | `habia` → `había` |
+| **LanguageTool** | Grammar, punctuation, agreement | Subject-verb agreement, accent marks |
+| **Linguistic Rules** | 200+ regex patterns via spaCy | `hace sentido` → `tiene sentido`, `estaba caminando` → `caminaba` |
+| **AI Refinement** | Literary polish (only when quality < threshold) | Calques, unnatural phrasing, style |
+
+### Rule Categories (200+ patterns)
+
+- **False friends**: `actualmente` → `en la actualidad`, `realizar` → `darse cuenta`
+- **Syntactic calques**: `en orden de` → `para`, `tomar lugar` → `tener lugar`
+- **Gerund overuse**: `estaba caminando` → `caminaba`
+- **Passive → reflexive**: `fue considerado` → `se consideró`
+- **Redundant possessives**: `abrió sus ojos` → `abrió los ojos`
+- **Bad collocations**: `sacudió su cabeza` → `negó con la cabeza`
+- **Literal idioms**: `llover gatos y perros` → `llover a cántaros`
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- **Python 3.9+**
+- **pip** (Python package manager)
+
+### Installation
+
+```bash
+# Clone the repository
+git clone https://github.com/YOUR_USERNAME/pdf-translator.git
+cd pdf-translator
+
+# Install dependencies
+pip install -r requirements.txt
+
+# Download spaCy Spanish model
+python -m spacy download es_core_news_sm
+```
+
+### Configuration (Optional)
+
+Copy the example environment file and add your API keys if you want AI-powered refinement:
+
+```bash
+cp .env.example .env
+```
 
 ```env
-# Gemini (gratis) — https://aistudio.google.com/app/apikey
-GEMINI_API_KEY=tu_clave_gemini
+# Gemini (free tier) — https://aistudio.google.com/app/apikey
+GEMINI_API_KEY=your_key_here
 
-# Claude (opcional) — https://console.anthropic.com
-ANTHROPIC_API_KEY=tu_clave_anthropic
+# Claude (optional, paid) — https://console.anthropic.com
+ANTHROPIC_API_KEY=your_key_here
 ```
 
-> **Nota:** La traducción con Google Translate funciona sin ninguna clave. Las claves de IA solo son necesarias si marcas "Refinar con IA" en la interfaz.
+> **Note**: Translation works without any API keys using Google Translate. AI keys are only needed for the optional "AI refinement" feature.
 
----
-
-## ▶️ Ejecutar
+### Run
 
 ```bash
+# Option 1: Direct
 cd backend
 python app.py
+
+# Option 2: Start script (installs deps automatically)
+# Windows
+start.bat
+
+# macOS / Linux
+chmod +x start.sh
+./start.sh
 ```
 
-Abre en el navegador: **http://localhost:5000**
-
-El servidor Flask sirve tanto el backend como el frontend automáticamente. **No necesitas abrir ningún archivo HTML directamente** — todo se accede desde `localhost:5000`.
-
-> Los archivos `index_v2_backup.html` e `index_v3.html` en `frontend/` son backups de versiones anteriores. El archivo activo es `frontend/index.html` y se sirve automáticamente desde el servidor.
+Open **http://localhost:5000** in your browser.
 
 ---
 
-## 📋 Flujo de uso
+## Usage
 
-```
-1. SUBIR PDF
-   └─ Arrastra o selecciona tu PDF
-   └─ Se convierte automáticamente a DOCX (preserva layout)
-
-2. TRADUCIR
-   ├─ Selecciona idioma de origen
-   ├─ Opcionalmente activa "Refinar con IA" (Gemini o Claude)
-   └─ Pulsa "Traducir todo el documento"
-       └─ La traducción corre en segundo plano con progreso real
-       └─ Puedes ver párrafo actual, porcentaje y tiempo estimado
-       └─ Se puede cancelar en cualquier momento
-
-3. GENERAR PDF
-   └─ Convierte el DOCX traducido de vuelta a PDF
-   └─ Descarga el resultado final
-```
+1. **Upload** — Drag & drop or select a PDF file. The app automatically converts it to DOCX preserving layout.
+2. **Translate** — Choose the source language (or auto-detect) and click "Traducir documento". Watch real-time progress.
+3. **Download** — The translated DOCX is converted back to PDF. Download the result.
 
 ---
 
-## 📁 Estructura del proyecto
+## Project Structure
 
 ```
 pdf-translator/
 ├── backend/
-│   ├── app.py                  # Servidor Flask (API + traducción async)
-│   └── app_v2_backup.py        # Backup versión anterior
+│   ├── app.py                    # Flask server + API routes + translation engine
+│   ├── postprocess_pipeline.py   # 5-stage NLP pipeline (normalize → hunspell → LT → spaCy → AI)
+│   ├── spanish_rules.py          # 200+ linguistic rules (false friends, calques, gerunds, passive)
+│   └── dicts/                    # Hunspell Spanish dictionaries (es_ES.aff, es_ES.dic)
 ├── frontend/
-│   ├── index.html              # ✅ Interfaz activa (servida por Flask)
-│   ├── index_v2_backup.html    # Backup v2
-│   └── index_v3.html           # Backup v3
-├── sessions/                   # Datos de sesiones (PDFs, DOCX, traducciones)
-├── requirements.txt            # Dependencias Python
-├── start.sh                    # Arranque rápido (Mac/Linux)
-└── start.bat                   # Arranque rápido (Windows)
+│   └── index.html                # Single-page UI (dark theme, step wizard)
+├── tests/
+│   ├── test_e2e_translate.py     # End-to-end translation tests
+│   ├── test_hang_fix.py          # Timeout / deadlock regression tests
+│   └── test_postprocess.py       # Post-processing pipeline unit tests
+├── .env.example                  # Environment template
+├── requirements.txt              # Python dependencies
+├── start.bat                     # Windows launcher
+├── start.sh                      # macOS/Linux launcher
+└── README.md
 ```
 
 ---
 
-## 🔧 Tecnologías
+## API Endpoints
 
-| Componente | Tecnología |
-|-----------|-----------|
-| Backend | Flask + threading (traducción en segundo plano) |
-| PDF → DOCX | pdf2docx (preserva layout, fuentes, imágenes, tablas) |
-| DOCX → PDF | docx2pdf (a través de Microsoft Word) |
-| Traducción automática | deep-translator (Google Translate, chunked) |
-| Refinamiento IA | Gemini 2.0 Flash / Claude (opcional) |
-| Post-procesamiento | Pipeline de 8 funciones para español literario |
-| Frontend | HTML + CSS + JS vanilla (SPA) |
-
----
-
-## ⚠️ Notas importantes
-
-- **Microsoft Word** debe estar instalado para que la conversión DOCX → PDF funcione (la librería `docx2pdf` lo necesita)
-- La traducción se ejecuta en segundo plano con **workers paralelos** — documentos grandes (200+ páginas) funcionan sin timeout
-- Para PDFs escaneados (imágenes) se necesitaría OCR adicional
-- Los archivos se guardan localmente en `sessions/`
-- Google Translate tiene un límite de ~5000 caracteres por petición; el código lo divide automáticamente en chunks
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `POST` | `/api/upload` | Upload PDF, auto-convert to DOCX |
+| `GET` | `/api/paragraphs/:id` | Get extracted paragraphs |
+| `POST` | `/api/translate-docx` | Start background translation job |
+| `GET` | `/api/translate-progress/:id` | Poll translation progress |
+| `POST` | `/api/translate-cancel/:id` | Cancel active translation |
+| `POST` | `/api/generate-pdf` | Convert translated DOCX → PDF |
+| `GET` | `/api/download/:id/:file` | Download translated file |
 
 ---
 
-## 💡 Consejos
+## License
 
-- **Sin IA:** La traducción con Google es rápida (~20-50 min para 200+ páginas). Ideal para una primera pasada.
-- **Con IA:** Marcar "Refinar con IA" mejora mucho la calidad literaria pero es más lento (~2-4x). Usa Gemini (gratis) para documentos largos.
-- **Cancelar:** Si la traducción va demasiado lenta, puedes cancelarla y reintentar sin IA.
+MIT
+
+---
+
+<p align="center">
+  Built with Python, Flask, and a lot of regex.
+</p>

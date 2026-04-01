@@ -1019,6 +1019,17 @@
               document.getElementById('etaRemaining').textContent = '~' + formatTime(d.eta_seconds);
             }
 
+          } else if (d.status === 'postprocessing') {
+            document.getElementById('translateProgressFill').style.width = '100%';
+            document.getElementById('translatePct').textContent = '100%';
+            document.getElementById('translateStepLabel').textContent = 'Post-procesando';
+            document.getElementById('translateStatus').textContent = 'Aplicando reglas ling\u00fc\u00edsticas y corrector gramatical...';
+            document.getElementById('etaDone').textContent = d.translated + ' / ' + d.total;
+            document.getElementById('etaRemaining').textContent = 'finalizando...';
+            if (d.elapsed_seconds != null) {
+              document.getElementById('etaElapsed').textContent = formatTime(d.elapsed_seconds);
+            }
+
           } else if (d.status === 'completed') {
             clearInterval(pollTimer);
             pollTimer = null;

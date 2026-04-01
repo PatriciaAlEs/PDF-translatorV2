@@ -61,9 +61,10 @@ def load_session_meta(session_id):
 # POST-PROCESAMIENTO DE TEXTO (Espanol literario)
 # ─────────────────────────────────────────────
 
-def post_process_spanish(text, use_ai=False, ai_provider="gemini"):
+def post_process_spanish(text, use_ai=True, ai_provider="gemini"):
     """Pipeline completo de post-procesamiento para texto literario en espanol.
     Delegates to postprocess_pipeline.run_pipeline for the full 5-step process.
+    AI refinement is enabled by default but only triggers when quality is low.
     Falls back to legacy inline pipeline if the module is unavailable.
     """
     try:
@@ -528,17 +529,17 @@ def _docx_to_pdf(docx_path, pdf_path):
     font_bi = Path(os.environ.get("WINDIR", r"C:\Windows")) / "Fonts" / "arialbi.ttf"
 
     if font_path.exists():
-        pdf.add_font("ArialUni", "", str(font_path), uni=True)
+        pdf.add_font("ArialUni", "", str(font_path))
         if font_bold.exists():
-            pdf.add_font("ArialUni", "B", str(font_bold), uni=True)
+            pdf.add_font("ArialUni", "B", str(font_bold))
         if font_italic.exists():
-            pdf.add_font("ArialUni", "I", str(font_italic), uni=True)
+            pdf.add_font("ArialUni", "I", str(font_italic))
         if font_bi.exists():
-            pdf.add_font("ArialUni", "BI", str(font_bi), uni=True)
+            pdf.add_font("ArialUni", "BI", str(font_bi))
         font_family = "ArialUni"
     else:
         # Fallback for non-Windows systems
-        pdf.add_font("DejaVu", "", str(Path(__file__).parent / "DejaVuSans.ttf"), uni=True)
+        pdf.add_font("DejaVu", "", str(Path(__file__).parent / "DejaVuSans.ttf"))
         font_family = "DejaVu"
 
     pdf.set_font(font_family, size=11)
@@ -590,31 +591,49 @@ def _translate_docx_in_place(docx_path, output_path, source_lang="auto",
                               progress_callback=None):
     """
     Translate a DOCX file in-place preserving all formatting.
-    Each paragraph's text is translated while keeping runs/styles intact.
+    Phase 1: Translate all paragraphs (Google Translate).
+    Phase 2: Batch post-process all translations (fewer API calls).
     Returns stats dict.
     """
     from docx import Document
     doc = Document(str(docx_path))
 
-    total = sum(1 for p in doc.paragraphs if p.text.strip() and len(p.text.strip()) >= 3)
-    translated_count = 0
+    # Phase 1: Collect and translate
+    work_items = []  # (para_index, para_obj, original_text)
+    for i, para in enumerate(doc.paragraphs):
+        text = para.text.strip()
+        if text and len(text) >= 3:
+            work_items.append((i, para, text))
 
-    for para in doc.paragraphs:
-        original_text = para.text.strip()
-        if not original_text or len(original_text) < 3:
-            continue
-
+    total = len(work_items)
+    raw_translations = []
+    for _, _, original_text in work_items:
         try:
-            translated = _translate_text_google(original_text, source_lang)
-            translated = post_process_spanish(translated, use_ai=use_ai, ai_provider=provider)
-            _apply_translation_to_paragraph(para, translated)
-            translated_count += 1
-
-            if progress_callback:
-                progress_callback(translated_count, total)
-
+            raw_translations.append(_translate_text_google(original_text, source_lang))
         except Exception as e:
             print(f"Error translating paragraph: {e}")
+            raw_translations.append(original_text)
+
+    # Phase 2: Batch post-process
+    try:
+        try:
+            from postprocess_pipeline import run_pipeline_batch
+        except ImportError:
+            from backend.postprocess_pipeline import run_pipeline_batch
+        pp_results = run_pipeline_batch(
+            raw_translations, use_ai=use_ai, ai_provider=provider,
+            progress_callback=progress_callback
+        )
+        processed = [r["text"] for r in pp_results]
+    except Exception as e:
+        print(f"[translate] Batch pipeline error, falling back to per-paragraph: {e}")
+        processed = [post_process_spanish(t, use_ai=use_ai, ai_provider=provider) for t in raw_translations]
+
+    # Phase 3: Apply back
+    translated_count = 0
+    for j, (_, para, _) in enumerate(work_items):
+        _apply_translation_to_paragraph(para, processed[j])
+        translated_count += 1
 
     doc.save(str(output_path))
     return {"total_paragraphs": total, "translated": translated_count}
@@ -640,12 +659,17 @@ def _translate_single_paragraph(text, source_lang, use_ai, provider):
 
 def _translate_docx_background(session_id, docx_path, output_path,
                                 source_lang, use_ai, provider):
-    """Background job: translate all paragraphs with parallel workers."""
+    """Background job: translate all paragraphs with parallel workers.
+    Phase 1: Translate in parallel (Google Translate, no blocking post-process).
+    Phase 2: Batch post-process all translations (fewer LT calls, one spaCy pass).
+    Phase 3: Apply results back to document.
+    """
     from docx import Document
 
     job = translation_jobs[session_id]
     job["status"] = "translating"
     job["started_at"] = time.time()
+    job["_heartbeat"] = time.time()
 
     try:
         doc = Document(str(docx_path))
@@ -667,14 +691,14 @@ def _translate_docx_background(session_id, docx_path, output_path,
             doc.save(str(output_path))
             return
 
-        # Fewer workers when using AI (API rate limits)
-        max_workers = 2 if use_ai else 4
-        translations = {}
+        # ── Phase 1: Parallel translation (Google Translate only, no post-process) ──
+        max_workers = 4
+        raw_translations = {}  # idx → raw translated text
 
         with ThreadPoolExecutor(max_workers=max_workers) as executor:
             futures = {
                 executor.submit(
-                    _translate_single_paragraph, text, source_lang, use_ai, provider
+                    _translate_text_google, text, source_lang
                 ): idx
                 for idx, text in work_items
             }
@@ -688,13 +712,13 @@ def _translate_docx_background(session_id, docx_path, output_path,
 
                 idx = futures[future]
                 try:
-                    translated_text = future.result()
-                    translations[idx] = translated_text
+                    raw_translations[idx] = future.result()
                 except Exception as e:
                     job["errors"].append(f"Párrafo {idx}: {str(e)}")
                     print(f"Error translating paragraph {idx}: {e}")
 
                 job["translated"] += 1
+                job["_heartbeat"] = time.time()
                 elapsed = time.time() - job["started_at"]
                 done = job["translated"]
                 if done > 0:
@@ -705,22 +729,66 @@ def _translate_docx_background(session_id, docx_path, output_path,
             job["status"] = "cancelled"
             return
 
-        # Apply translations back to document (sequential)
-        if not translations:
+        if not raw_translations:
             job["status"] = "error"
             job["error_message"] = f"Ningún párrafo se tradujo correctamente. Errores: {'; '.join(job['errors'][:3])}"
             print(f"Translation failed for {session_id}: no paragraphs translated. Errors: {job['errors']}")
             return
 
+        # ── Phase 2: Batch post-process (fewer LT calls, one spaCy pass) ──
+        job["status"] = "postprocessing"
+        job["_heartbeat"] = time.time()
+        print(f"[translate] Phase 2: post-processing {len(work_items)} paragraphs...")
+        ordered_raw = [raw_translations.get(idx, text) for idx, text in work_items]
+
+        pp_start = time.time()
+        PP_TIMEOUT = 90  # seconds max for post-processing
+
+        processed = None
+        try:
+            try:
+                from postprocess_pipeline import run_pipeline_batch
+            except ImportError:
+                from backend.postprocess_pipeline import run_pipeline_batch
+
+            from concurrent.futures import ThreadPoolExecutor as _TPE, TimeoutError as _TE
+            pp_executor = _TPE(max_workers=1)
+            pp_future = pp_executor.submit(
+                run_pipeline_batch, ordered_raw, use_ai, provider
+            )
+            try:
+                pp_results = pp_future.result(timeout=PP_TIMEOUT)
+                processed = {work_items[j][0]: pp_results[j]["text"] for j in range(len(work_items))}
+                print(f"[translate] Phase 2 completed in {time.time() - pp_start:.1f}s")
+            except (_TE, TimeoutError):
+                pp_future.cancel()
+                pp_executor.shutdown(wait=False, cancel_futures=True)
+                print(f"[translate] Phase 2 TIMEOUT ({PP_TIMEOUT}s) — using raw translations")
+            except Exception as e:
+                print(f"[translate] Phase 2 pipeline raised: {e} — using raw translations")
+                try:
+                    pp_executor.shutdown(wait=False, cancel_futures=True)
+                except Exception:
+                    pass
+            else:
+                pp_executor.shutdown(wait=False)
+        except Exception as e:
+            print(f"[translate] Batch pipeline error: {e}")
+
+        if processed is None:
+            print(f"[translate] Using raw translations (no post-processing)")
+            processed = {}
+            for j, (idx, _) in enumerate(work_items):
+                processed[idx] = ordered_raw[j]
+
+        # ── Phase 3: Apply translations back to document ──
+        job["_heartbeat"] = time.time()
         for i, para in enumerate(doc.paragraphs):
-            if i in translations:
-                _apply_translation_to_paragraph(para, translations[i])
+            if i in processed:
+                _apply_translation_to_paragraph(para, processed[i])
 
         doc.save(str(output_path))
-        print(f"Saved translated DOCX: {output_path} ({len(translations)}/{total} paragraphs)")
-
-        job["status"] = "completed"
-        job["finished_at"] = time.time()
+        print(f"Saved translated DOCX: {output_path} ({len(processed)}/{total} paragraphs)")
 
         meta = load_session_meta(session_id)
         meta["status"] = "translated"
@@ -728,9 +796,23 @@ def _translate_docx_background(session_id, docx_path, output_path,
         save_session_meta(session_id, meta)
 
     except Exception as e:
-        job["status"] = "error"
         job["error_message"] = str(e)
         print(f"Translation job failed for {session_id}: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # GUARANTEE terminal status — never leave job in "postprocessing"
+        if job["status"] not in ("completed", "error", "cancelled"):
+            # If we got here without processed, it's an error; otherwise success
+            if processed is not None and len(processed) > 0:
+                job["status"] = "completed"
+            else:
+                job["status"] = "error"
+                if not job.get("error_message"):
+                    job["error_message"] = "El post-procesamiento falló pero los párrafos fueron traducidos"
+        job["finished_at"] = time.time()
+        job["_heartbeat"] = time.time()
+        print(f"[translate] Job {session_id} final status: {job['status']}")
 
 
 # ─────────────────────────────────────────────
@@ -866,6 +948,17 @@ def translate_progress(session_id):
     job = translation_jobs.get(session_id)
     if not job:
         return jsonify({"status": "none", "error": "No hay traducción en curso"}), 404
+
+    # ── Safety: detect stale/dead background thread ──
+    STALE_TIMEOUT = 150  # seconds without heartbeat → force-complete
+    heartbeat = job.get("_heartbeat", 0)
+    if (job["status"] in ("translating", "postprocessing", "starting")
+            and heartbeat > 0
+            and time.time() - heartbeat > STALE_TIMEOUT):
+        print(f"[progress] Job {session_id} stale ({time.time() - heartbeat:.0f}s without heartbeat), forcing completion")
+        job["status"] = "completed"
+        job["finished_at"] = time.time()
+        job["error_message"] = None  # not an error, just slow
 
     result = {
         "status": job["status"],
